@@ -17,8 +17,6 @@ class IRCConnection:
         self.nick=None
         self.sock=None
         self.buf=b''
-        self.lines=[]
-        self.lastRecvFinished=True
     def connect(self, server='irc.freenode.net', port=6667):
         '''Connect to a IRC server.'''
         self.server=server
@@ -27,8 +25,6 @@ class IRCConnection:
         self.sock.setblocking(False)
         self.nick=None
         self.buf=b''
-        self.lines=[]
-        self.lastRecvFinished=True
     def quote(self, s):
         '''Send a specific IRC command. Split multiple commands using \n'''
         for i in s.split('\n'):
@@ -73,7 +69,6 @@ class IRCConnection:
         self.sock=None
         self.server=None
         self.nick=None
-        self.lastRecvFinished=True
     def say(self, dest, msg):
         '''Send a message to a channel or a private message to a person.'''
         for i in msg.split('\n'):
@@ -82,33 +77,22 @@ class IRCConnection:
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
             self.buf+=self.sock.recv(size)
-            self.lastRecvFinished=self.buf.endswith(b'\n')
+            return True
         except socket.error as e:
-            if e.errno!=11:
+            if e.errno==11:
+                return False
+            else:
                 raise e
     def parse(self):
         '''Receive messages from server and process it. Returning a dictionary or None.'''
-        if len(self.lines)<2:
+        if self.buf.find(b'\n')==-1:
             self.recv()
-        if self.buf:
-            if not self.lastRecvFinished:
-                line=self.buf.split(b'\n', 1)
-                if len(line)==2:
-                    line, self.buf=line
-                else:
-                    line=line[0]
-                    self.buf=b''
-                if len(self.lines)>=1:
-                    self.lines.append(self.lines.pop()+line.decode('utf-8', 'replace'))
-                else:
-                    self.lines.append(line.decode('utf-8', 'replace'))
-            if self.buf:
-                self.lines+=self.buf.decode('utf-8', 'replace').split('\n')
-            self.buf=b''
-        if self.lines and len(self.lines)>1:
-            line=self.lines.pop(0).rstrip('\r')
+            return None
+        if self.buf.find(b'\n')!=-1:
+            line, self.buf=self.buf.split(b'\n', 1)
+            line=line.rstrip(b'\r').decode('utf-8', 'replace')
             if not line:
-                return self.parse()
+                return None
             try:
                 if line.startswith('PING '):
                     self.quote('PONG %s' % line[5:])
