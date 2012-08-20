@@ -27,9 +27,12 @@ class IRCConnection:
         self.buf=b''
     def quote(self, s):
         '''Send a raw IRC command. Split multiple commands using \\n.'''
+        sendbuf=b''
         for i in s.split('\n'):
             if i:
-                self.sock.send(('%s\r\n' % i).encode('utf-8', 'replace'))
+                sendbuf+=i.encode('utf-8', 'replace')+b'\r\n'
+        if sendbuf:
+            self.sock.send(sendbuf)
     def setpass(self, passwd):
         '''Send password, it should be used before setnick. This password is different from that one sent to NickServ and it is usually unnecessary.'''
         self.quote('PASS %s' % passwd)
