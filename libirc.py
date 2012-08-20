@@ -34,7 +34,7 @@ class IRCConnection:
         if sendbuf:
             self.sock.send(sendbuf)
     def setpass(self, passwd):
-        '''Send password, it should be used before setnick. This password is different from that one sent to NickServ and it is usually unnecessary.'''
+        '''Send password, it should be used before setnick(). This password is different from that one sent to NickServ and it is usually unnecessary.'''
         self.quote('PASS %s' % passwd)
     def setnick(self, newnick):
         '''Set nickname.'''
