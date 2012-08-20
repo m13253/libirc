@@ -1,0 +1,36 @@
+libirc
+========
+A Python module that allows you to connect to IRC in a simple way.
+
+Usage Example:
+    #!/usr/bin/env python
+    # Remember to use Python 3
+
+    import libirc
+    import time
+
+    my_irc_connection = libirc.IRCConnection()
+
+    # Connect to the server and identify yourself
+    my_irc_connection.connect(host, port)
+    my_irc_connection.setnick(nickname)
+    my_irc_connection.setuser(ident, realname)
+    my_irc_connection.join(channel)
+
+    # You can send messages
+    my_irc_connection.say(channel, 'I am coming!')
+    my_irc_connection.say(someone, 'I can send you a private message!')
+
+    # Or keep receiving messages
+    while True: # Receiving loop
+        response = my_irc_connection.parse()
+        if response: # If nothing is received, response will be None
+            # Do your stuff here, e.g. if response.cmd=='PRIVMSG':
+        time.sleep(2) # Wait a moment
+
+    # Leave a channel or disconnect from server
+    my_irc_connection.part(channel, 'I am leaving!')
+    my_irc_connection.quit('Goodbye, server!')
+
+    # For more help, use help(libirc.IRCConnection)
+
