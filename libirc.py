@@ -22,7 +22,6 @@ class IRCConnection:
         self.server=server
         self.sock=socket.socket()
         self.sock.connect((server, port))
-        self.sock.setblocking(False)
         self.nick=None
         self.buf=b''
     def quote(self, s):
@@ -32,7 +31,7 @@ class IRCConnection:
             if i:
                 sendbuf+=i.encode('utf-8', 'replace')+b'\r\n'
         if sendbuf:
-            self.sock.send(sendbuf)
+            self.sock.sendall(sendbuf)
     def setpass(self, passwd):
         '''Send password, it should be used before setnick(). This password is different from that one sent to NickServ and it is usually unnecessary.'''
         self.quote('PASS %s' % passwd)
@@ -79,10 +78,10 @@ class IRCConnection:
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
-            self.buf+=self.sock.recv(size)
+            self.buf+=self.sock.recv(size, socket.MSG_DONTWAIT)
             return True
         except socket.error as e:
-            if e.errno==11:
+            if e.errno in {socket.EAGAIN, socket.EWOULDBLOCK}:
                 return False
             else:
                 raise e
