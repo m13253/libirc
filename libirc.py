@@ -26,7 +26,7 @@ class IRCConnection:
         self.nick=None
         self.buf=b''
     def quote(self, s):
-        '''Send a specific IRC command. Split multiple commands using \n'''
+        '''Send a raw IRC command. Split multiple commands using \\n.'''
         for i in s.split('\n'):
             if i:
                 self.sock.send(('%s\r\n' % i).encode('utf-8', 'replace'))
