@@ -88,9 +88,8 @@ class IRCConnection:
                 raise e
     def parse(self):
         '''Receive messages from server and process it. Returning a dictionary or None.'''
-        if self.buf.find(b'\n')==-1:
-            self.recv()
-            return None
+        while self.buf.find(b'\n')==-1 and self.recv():
+            pass
         if self.buf.find(b'\n')!=-1:
             line, self.buf=self.buf.split(b'\n', 1)
             line=line.rstrip(b'\r').decode('utf-8', 'replace')
