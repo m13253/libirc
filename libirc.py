@@ -34,7 +34,7 @@ class IRCConnection:
     def quote(self, s):
         '''Send a raw IRC command. Split multiple commands using \\n.'''
         if not self.sock:
-            e=socket.error
+            e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
             e.errno=errno.ENOTSOCK
             raise e
         sendbuf=b''
@@ -49,7 +49,7 @@ class IRCConnection:
                     self.sock.close()
                 finally:
                     self.sock=None
-                raise e
+                raise
     def setpass(self, passwd):
         '''Send password, it should be used before setnick(). This password is different from that one sent to NickServ and it is usually unnecessary.'''
         self.quote('PASS %s' % rmnl(passwd))
@@ -151,7 +151,7 @@ class IRCConnection:
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         if not self.sock:
-            e=socket.error
+            e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
             e.errno=errno.ENOTSOCK
             raise e
         try:
@@ -169,10 +169,10 @@ class IRCConnection:
                     self.quit('Network error.')
                 finally:
                     self.sock=None
-                raise e
+                raise
     def recvline(self):
         '''Receive a line from server. It calls recv().'''
-        while self.sock and self.buf.find(b'\n')==-1 and self.recv():
+        while self.buf.find(b'\n')==-1 and self.recv():
             pass
         if self.buf.find(b'\n')!=-1:
             line, self.buf=self.buf.split(b'\n', 1)
