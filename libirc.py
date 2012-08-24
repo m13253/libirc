@@ -88,6 +88,23 @@ class IRCConnection:
         '''Send a message to a channel or a private message to a person.'''
         for i in msg.split('\n'):
             self.quote('PRIVMSG %s :%s' % (dest, i))
+    def mode(self, target, newmode=None):
+        '''Read or set mode of a nick or a channel.'''
+        if newmode!=None:
+            if target.startswith('#') or target.startswith('&'):
+                newmode=' '+newmode
+            else:
+                newmode=' :'+newmode
+        else:
+            newmode=''
+        self.quote('MODE %s%s' % (target, newmode))
+    def kick(self, channel, target, reason=None):
+        '''Kick a person out of the channel.'''
+        if reason!=None:
+            reason=' :'+reason
+        else:
+            reason=''
+        self.quote('KICK %s %s%s' % (channel, target, reason))
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
@@ -152,10 +169,23 @@ class IRCConnection:
                         else:
                             msg=msg[0].split(' ', 1)
                             dest=msg.pop(0)
-                            if msg!=[]:
-                                msg=stripcomma(msg[0])
+                            if cmd!='KICK':
+                                if msg!=[]:
+                                    msg=stripcomma(msg[0])
+                                else:
+                                    msg=None
                             else:
-                                msg=None
+                                if msg!=[]:
+                                    msg=msg[0].split(' ', 1)
+                                    dest2=msg.pop(0)
+                                    if msg!=[]:
+                                        msg=stripcomma(msg[0])
+                                    else:
+                                        msg=None
+                                    dest=(dest, dest2)
+                                else:
+                                    msg=None
+                                    dest=(None, dest)
                     else:
                         msg=dest=None
                 else:
