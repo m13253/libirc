@@ -127,7 +127,7 @@ class IRCConnection:
                     finally:
                         return {'nick': None, 'ident': None, 'cmd': 'PING', 'dest': None, 'msg': stripcomma(line[5:])}
                 if line.startswith(':'):
-                    cmd=line.split(None, 1)
+                    cmd=line.split(' ', 1)
                     nick=cmd.pop(0).split('!', 1)
                     if len(nick)>=2:
                         nick, ident=nick
@@ -143,14 +143,14 @@ class IRCConnection:
                     else:
                         cmd=[line]
                 if cmd!=[]:
-                    msg=cmd[0].split(None, 1)
+                    msg=cmd[0].split(' ', 1)
                     cmd=msg.pop(0)
                     if msg!=[]:
                         if msg[0].startswith(':'):
                             dest=None
                             msg=stripcomma(msg[0])
                         else:
-                            msg=msg[0].split(None, 1)
+                            msg=msg[0].split(' ', 1)
                             dest=msg.pop(0)
                             if msg!=[]:
                                 msg=stripcomma(msg[0])
