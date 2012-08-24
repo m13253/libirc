@@ -101,8 +101,10 @@ class IRCConnection:
         if line:
             try:
                 if line.startswith('PING '):
-                    self.quote('PONG %s' % line[5:])
-                    return {'nick': None, 'ident': None, 'cmd': 'PING', 'dest': None, 'msg': stripcomma(line[5:])}
+                    try:
+                        self.quote('PONG %s' % line[5:])
+                    finally:
+                        return {'nick': None, 'ident': None, 'cmd': 'PING', 'dest': None, 'msg': stripcomma(line[5:])}
                 if line.startswith(':'):
                     cmd=line.split(None, 1)
                     nick=cmd.pop(0).split('!', 1)
