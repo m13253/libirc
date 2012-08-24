@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 import socket
-import string
+import sys
 
 def stripcomma(s):
     '''Delete the comma if the string starts with a comma.'''
@@ -31,7 +30,14 @@ class IRCConnection:
             if i:
                 sendbuf+=i.encode('utf-8', 'replace')+b'\r\n'
         if sendbuf:
-            self.sock.sendall(sendbuf)
+            try:
+                self.sock.sendall(sendbuf)
+            except socket.error as e:
+                try:
+                    self.sock.close()
+                finally:
+                    self.sock=None
+                raise e
     def setpass(self, passwd):
         '''Send password, it should be used before setnick(). This password is different from that one sent to NickServ and it is usually unnecessary.'''
         self.quote('PASS %s' % passwd)
@@ -66,8 +72,15 @@ class IRCConnection:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('QUIT%s' % reason)
-        self.sock.close()
+        if self.sock:
+            try:
+                self.quote('QUIT%s' % reason)
+            except:
+                pass
+            try:
+                self.sock.close()
+            except:
+                pass
         self.sock=None
         self.server=None
         self.nick=None
@@ -78,12 +91,20 @@ class IRCConnection:
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
-            self.buf+=self.sock.recv(size, socket.MSG_DONTWAIT)
+            received=self.sock.recv(size, socket.MSG_DONTWAIT)
+            if received:
+                self.buf+=received
+            else:
+                self.quit('Connection reset by peer.')
             return True
         except socket.error as e:
             if e.errno in {socket.EAGAIN, socket.EWOULDBLOCK}:
                 return False
             else:
+                try:
+                    self.quit('Network error.')
+                finally:
+                    self.sock=None
                 raise e
     def recvline(self):
         '''Receive a line from server. It calls recv().'''
