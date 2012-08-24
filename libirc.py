@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import errno
 import socket
 import sys
 
@@ -25,6 +26,10 @@ class IRCConnection:
         self.buf=b''
     def quote(self, s):
         '''Send a raw IRC command. Split multiple commands using \\n.'''
+        if not self.sock:
+            e=socket.error
+            e.errno=errno.ENOTSOCK
+            raise e
         sendbuf=b''
         for i in s.split('\n'):
             if i:
@@ -139,6 +144,10 @@ class IRCConnection:
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
+            if not self.sock:
+                e=socket.error
+                e.errno=errno.ENOTSOCK
+                raise e
             received=self.sock.recv(size, socket.MSG_DONTWAIT)
             if received:
                 self.buf+=received
@@ -156,7 +165,7 @@ class IRCConnection:
                 raise e
     def recvline(self):
         '''Receive a line from server. It calls recv().'''
-        while self.buf.find(b'\n')==-1 and self.recv():
+        while self.sock and self.buf.find(b'\n')==-1 and self.recv():
             pass
         if self.buf.find(b'\n')!=-1:
             line, self.buf=self.buf.split(b'\n', 1)
