@@ -98,14 +98,22 @@ class IRCConnection:
                 if line.startswith('PING '):
                     self.quote('PONG %s' % line[5:])
                     return {'nick': None, 'ident': None, 'cmd': 'PING', 'dest': None, 'msg': stripcomma(line[5:])}
-                cmd=line.split(None, 1)
-                nick=cmd.pop(0).split('!', 1)
-                if len(nick)>=2:
-                    nick, ident=nick
+                if line.startswith(':')
+                    cmd=line.split(None, 1)
+                    nick=cmd.pop(0).split('!', 1)
+                    if len(nick)>=2:
+                        nick, ident=nick
+                    else:
+                        ident=None
+                        nick=nick[0]
+                    nick=stripcomma(nick)
                 else:
+                    nick=None
                     ident=None
-                    nick=nick[0]
-                nick=stripcomma(nick)
+                    if line!="":
+                        cmd=[]
+                    else:
+                        cmd=[line]
                 if cmd!=[]:
                     msg=cmd[0].split(None, 1)
                     cmd=msg.pop(0)
