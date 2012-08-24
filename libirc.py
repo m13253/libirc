@@ -137,7 +137,7 @@ class IRCConnection:
     def topic(self, channel, newtopic=None):
         '''Set a new topic or get the current topic.'''
         if newtopic!=None:
-            newtopic=': '+newtopic
+            newtopic=' :'+newtopic
         else:
             newtopic=''
         self.quote('TOPIC %s%s' % (channel, newtopic))
