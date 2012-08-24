@@ -151,7 +151,7 @@ class IRCConnection:
         else:
             newtopic=''
         self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
-    def recv(self, block=False):
+    def recv(self, block=True):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         if not self.sock:
             e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
@@ -176,7 +176,7 @@ class IRCConnection:
                 finally:
                     self.sock=None
                 raise
-    def recvline(self, block=False):
+    def recvline(self, block=True):
         '''Receive a line from server. It calls recv().'''
         while self.buf.find(b'\n')==-1 and self.recv(block):
             pass
@@ -185,7 +185,7 @@ class IRCConnection:
             return line.rstrip(b'\r').decode('utf-8', 'replace')
         else:
             return None
-    def parse(self, block=False, line=None):
+    def parse(self, block=True, line=None):
         '''Receive messages from server and process it. Returning a dictionary or None.'''
         if line==None:
             line=self.recvline(block)
