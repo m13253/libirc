@@ -40,8 +40,8 @@ Usage Example:
     # Notice:
 
     # Libirc handles PING and CTCP PING automatically when you use parse().
-    # parse() returns the detail of that PING but you do not need to process
-    # that yourself.
+    # parse() still returns the detail of that PING, but you do not need to
+    # process it yourself.
 
     # You should call parse() at most every 4 minutes, or the server will
     # disconnect from you.
@@ -50,10 +50,14 @@ Usage Example:
     # network connection is terminated, its errno should be errno.ENOTSOCK or
     # errno.EPIPE.
 
+    # If you would like to receive raw stream from the server, use recvline(),
+    # after that, you can still parse it, since parse() equals to
+    # parse(line=recvline()).
+
 
     # Leave a channel or disconnect from server
     my_irc_connection.part(channel, 'I am leaving!')
     my_irc_connection.quit('Goodbye, server!')
 
-    # For more help, use help(libirc.IRCConnection)
+    # For more help, use help(libirc)
 

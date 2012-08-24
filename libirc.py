@@ -4,22 +4,28 @@ import errno
 import socket
 import sys
 
+__doc__='''A Python module that allows you to connect to IRC in a simple way.'''
+
 # If you want a different value, change libirc.BUFFER_LENGTH after importing.
 BUFFER_LENGTH=1024
 
 def stripcomma(s):
     '''Delete the comma if the string starts with a comma.'''
+    s=str(s)
     if s.startswith(':'):
         return s[1:]
     else:
         return s
 
 def rmnl(s):
-    return s.replace('\r', '').strip('\n').replace('\n', ' ')
+    '''Replace \\n with spaces from a string.'''
+    return str(s).replace('\r', '').strip('\n').replace('\n', ' ')
 def rmnlsp(s):
-    return s.replace('\r', '').replace('\n', '').replace(' ', '')
+    '''Remove \\n and spaces from a string.'''
+    return str(s).replace('\r', '').replace('\n', '').replace(' ', '')
 def rmcr(s):
-    return s.replace('\r', '')
+    '''Remove \\r from a string.'''
+    return str(s).replace('\r', '')
 
 class IRCConnection:
     def __init__(self):
@@ -54,7 +60,7 @@ class IRCConnection:
                     self.sock=None
                 raise
     def setpass(self, passwd):
-        '''Send password, it should be used before setnick(). This password is different from that one sent to NickServ and it is usually unnecessary.'''
+        '''Send password, it should be used before setnick().\nThis password is different from that one sent to NickServ and it is usually unnecessary.'''
         self.quote('PASS %s' % rmnl(passwd))
     def setnick(self, newnick):
         '''Set nickname.'''
@@ -100,7 +106,7 @@ class IRCConnection:
         self.server=None
         self.nick=None
     def say(self, dest, msg):
-        '''Send a message to a channel or a private message to a person.'''
+        '''Send a message to a channel, or a private message to a person.'''
         for i in msg.split('\n'):
             self.quote('PRIVMSG %s :%s' % (rmnlsp(dest), rmcr(i)))
     def me(self, dest, action):
@@ -152,7 +158,7 @@ class IRCConnection:
             newtopic=''
         self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
     def recv(self, block=True):
-        '''Receive stream from server. Do not call it directly, it should be called by parse().'''
+        '''Receive stream from server.\nDo not call it directly, it should be called by parse() or recvline().'''
         if not self.sock:
             e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
             e.errno=errno.ENOTSOCK
@@ -177,7 +183,7 @@ class IRCConnection:
                     self.sock=None
                 raise
     def recvline(self, block=True):
-        '''Receive a line from server. It calls recv().'''
+        '''Receive a raw line from server.\nIt calls recv(), and is called by parse() when line==None.\nIts output can be the 'line' argument of parse()'s input.'''
         while self.buf.find(b'\n')==-1 and self.recv(block):
             pass
         if self.buf.find(b'\n')!=-1:
@@ -186,7 +192,7 @@ class IRCConnection:
         else:
             return None
     def parse(self, block=True, line=None):
-        '''Receive messages from server and process it. Returning a dictionary or None.'''
+        '''Receive messages from server and process it.\nReturning a dictionary or None.\nIts 'line' argument accepts the output of recvline().'''
         if line==None:
             line=self.recvline(block)
         if line:
