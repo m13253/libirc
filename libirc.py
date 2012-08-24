@@ -88,6 +88,10 @@ class IRCConnection:
         '''Send a message to a channel or a private message to a person.'''
         for i in msg.split('\n'):
             self.quote('PRIVMSG %s :%s' % (dest, i))
+    def me(self, dest, action):
+        '''Send an action message.'''
+        for i in action.split('\n'):
+            self.say(dest, '\x01ACTION %s\x01' % i)
     def mode(self, target, newmode=None):
         '''Read or set mode of a nick or a channel.'''
         if newmode!=None:
