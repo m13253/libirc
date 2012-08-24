@@ -243,7 +243,11 @@ class IRCConnection:
                         msg=dest=None
                 else:
                     msg=dest=cmd=None
-                return {'nick': nick, 'ident': ident, 'cmd': cmd, 'dest': dest, 'msg': msg}
+                try:
+                    if nick and cmd=='PRIVMSG' and msg and str(msg).startswith('\x01PING '):
+                        self.notice(str(nick), str(msg))
+                finally:
+                    return {'nick': nick, 'ident': ident, 'cmd': cmd, 'dest': dest, 'msg': msg}
             except:
                 return {'nick': None, 'ident': None, 'cmd': None, 'dest': None, 'msg': line}
         else:
