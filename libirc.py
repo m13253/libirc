@@ -109,6 +109,33 @@ class IRCConnection:
         else:
             reason=''
         self.quote('KICK %s %s%s' % (channel, target, reason))
+    def away(self, state=None):
+        '''Set away status with an argument, or cancal away status without the argument'''
+        if state!=None:
+            state=' :'+state
+        else:
+            state=''
+        self.quote('AWAY%s' % state)
+    def invite(self, target, channel):
+        '''Invite a specific user to an invite-only channel.'''
+        self.quote('INVITE %s %s' % (target, channel))
+    def notice(self, target, msg=None):
+        '''Send a notice to a specific user.'''
+        if msg!=None:
+            for i in msg.split('\n'):
+                if i:
+                    self.quote('NOTICE %s :%s' % (target, i))
+                else:
+                    self.quote('NOTICE %s' % target)
+        else:
+            self.quote('NOTICE %s' % target)
+    def topic(self, target, newtopic=None):
+        '''Set a new topic or get the current topic.'''
+        if newtopic!=None:
+            newtopic=': '+newtopic
+        else:
+            newtopic=''
+        self.quote('TOPIC %s%s' % (target, newtopic))
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
