@@ -150,11 +150,11 @@ class IRCConnection:
         self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
+        if not self.sock:
+            e=socket.error
+            e.errno=errno.ENOTSOCK
+            raise e
         try:
-            if not self.sock:
-                e=socket.error
-                e.errno=errno.ENOTSOCK
-                raise e
             received=self.sock.recv(size, socket.MSG_DONTWAIT)
             if received:
                 self.buf+=received
