@@ -4,6 +4,9 @@ import errno
 import socket
 import sys
 
+# If you want a different value, change libirc.BUFFER_LENGTH after importing.
+BUFFER_LENGTH=1024
+
 def stripcomma(s):
     '''Delete the comma if the string starts with a comma.'''
     if s.startswith(':'):
@@ -148,7 +151,7 @@ class IRCConnection:
         else:
             newtopic=''
         self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
-    def recv(self, block=False, size=1024):
+    def recv(self, block=False):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         if not self.sock:
             e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
@@ -156,9 +159,9 @@ class IRCConnection:
             raise e
         try:
             if block:
-                received=self.sock.recv(size)
+                received=self.sock.recv(BUFFER_LENGTH)
             else:
-                received=self.sock.recv(size, socket.MSG_DONTWAIT)
+                received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
             if received:
                 self.buf+=received
             else:
