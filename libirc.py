@@ -85,15 +85,20 @@ class IRCConnection:
                 return False
             else:
                 raise e
-    def parse(self):
-        '''Receive messages from server and process it. Returning a dictionary or None.'''
+    def recvline(self):
+        '''Receive a line from server. It calls recv().'''
         while self.buf.find(b'\n')==-1 and self.recv():
             pass
         if self.buf.find(b'\n')!=-1:
             line, self.buf=self.buf.split(b'\n', 1)
-            line=line.rstrip(b'\r').decode('utf-8', 'replace')
-            if not line:
-                return None
+            return line.rstrip(b'\r').decode('utf-8', 'replace')
+        else:
+            return None
+    def parse(self, line=None):
+        '''Receive messages from server and process it. Returning a dictionary or None.'''
+        if line==None:
+            line=self.recvline()
+        if line:
             try:
                 if line.startswith('PING '):
                     self.quote('PONG %s' % line[5:])
