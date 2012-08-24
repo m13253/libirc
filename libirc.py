@@ -119,23 +119,23 @@ class IRCConnection:
     def invite(self, target, channel):
         '''Invite a specific user to an invite-only channel.'''
         self.quote('INVITE %s %s' % (target, channel))
-    def notice(self, target, msg=None):
+    def notice(self, dest, msg=None):
         '''Send a notice to a specific user.'''
         if msg!=None:
             for i in msg.split('\n'):
                 if i:
-                    self.quote('NOTICE %s :%s' % (target, i))
+                    self.quote('NOTICE %s :%s' % (dest, i))
                 else:
-                    self.quote('NOTICE %s' % target)
+                    self.quote('NOTICE %s' % dest)
         else:
-            self.quote('NOTICE %s' % target)
-    def topic(self, target, newtopic=None):
+            self.quote('NOTICE %s' % dest)
+    def topic(self, channel, newtopic=None):
         '''Set a new topic or get the current topic.'''
         if newtopic!=None:
             newtopic=': '+newtopic
         else:
             newtopic=''
-        self.quote('TOPIC %s%s' % (target, newtopic))
+        self.quote('TOPIC %s%s' % (channel, newtopic))
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
