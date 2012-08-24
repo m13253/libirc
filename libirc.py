@@ -11,6 +11,13 @@ def stripcomma(s):
     else:
         return s
 
+def rmnl(s):
+    return s.replace('\r', '').strip('\n').replace('\n', ' ')
+def rmnlsp(s):
+    return s.replace('\r', '').replace('\n', '').replace(' ', '')
+def rmcr(s):
+    return s.replace('\r', '')
+
 class IRCConnection:
     def __init__(self):
         self.server=None
@@ -19,9 +26,9 @@ class IRCConnection:
         self.buf=b''
     def connect(self, server='irc.freenode.net', port=6667):
         '''Connect to a IRC server.'''
-        self.server=server
+        self.server=rmnlsp(server)
         self.sock=socket.socket()
-        self.sock.connect((server, port))
+        self.sock.connect((self.server, port))
         self.nick=None
         self.buf=b''
     def quote(self, s):
@@ -45,32 +52,32 @@ class IRCConnection:
                 raise e
     def setpass(self, passwd):
         '''Send password, it should be used before setnick(). This password is different from that one sent to NickServ and it is usually unnecessary.'''
-        self.quote('PASS %s' % passwd)
+        self.quote('PASS %s' % rmnl(passwd))
     def setnick(self, newnick):
         '''Set nickname.'''
-        self.nick=newnick
-        self.quote('NICK %s' % newnick)
+        self.nick=rmnlsp(newnick)
+        self.quote('NICK %s' % self.nick)
     def setuser(self, ident=None, realname=None):
         '''Set user ident and real name.'''
         if ident==None:
             ident=self.nick
         if realname==None:
             realname=ident
-        self.quote('USER %s %s bla :%s' % (ident, self.server, realname))
+        self.quote('USER %s %s bla :%s' % (rmnlsp(ident), rmnlsp(self.server), rmnl(realname)))
     def join(self, channel, key=None):
         '''Join channel. A password is optional.'''
         if key!=None:
             key=' '+key
         else:
             key=''
-        self.quote('JOIN %s%s' % (channel, key))
+        self.quote('JOIN %s%s' % (rmnlsp(channel), rmnl(key)))
     def part(self, channel, reason=None):
         '''Leave channel. A reason is optional.'''
         if reason!=None:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('PART %s%s' % (channel, reason))
+        self.quote('PART %s%s' % (rmnlsp(channel), rmnl(reason)))
     def quit(self, reason='Leaving.'):
         '''Quit and disconnect from server. A reason is optional.'''
         if reason!=None:
@@ -79,7 +86,7 @@ class IRCConnection:
             reason=''
         if self.sock:
             try:
-                self.quote('QUIT%s' % reason)
+                self.quote('QUIT%s' % rmnl(reason))
             except:
                 pass
             try:
@@ -92,11 +99,11 @@ class IRCConnection:
     def say(self, dest, msg):
         '''Send a message to a channel or a private message to a person.'''
         for i in msg.split('\n'):
-            self.quote('PRIVMSG %s :%s' % (dest, i))
+            self.quote('PRIVMSG %s :%s' % (rmnlsp(dest), rmcr(i)))
     def me(self, dest, action):
         '''Send an action message.'''
         for i in action.split('\n'):
-            self.say(dest, '\x01ACTION %s\x01' % i)
+            self.say(rmnlsp(dest), '\x01ACTION %s\x01' % i)
     def mode(self, target, newmode=None):
         '''Read or set mode of a nick or a channel.'''
         if newmode!=None:
@@ -106,41 +113,41 @@ class IRCConnection:
                 newmode=' :'+newmode
         else:
             newmode=''
-        self.quote('MODE %s%s' % (target, newmode))
+        self.quote('MODE %s%s' % (rmnlsp(target), rmnl(newmode)))
     def kick(self, channel, target, reason=None):
         '''Kick a person out of the channel.'''
         if reason!=None:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('KICK %s %s%s' % (channel, target, reason))
+        self.quote('KICK %s %s%s' % (rmnlsp(channel), rmnlsp(target), rmnl(reason)))
     def away(self, state=None):
         '''Set away status with an argument, or cancal away status without the argument'''
         if state!=None:
             state=' :'+state
         else:
             state=''
-        self.quote('AWAY%s' % state)
+        self.quote('AWAY%s' % rmnl(state))
     def invite(self, target, channel):
         '''Invite a specific user to an invite-only channel.'''
-        self.quote('INVITE %s %s' % (target, channel))
+        self.quote('INVITE %s %s' % (rmnlsp(target), rmnlsp(channel)))
     def notice(self, dest, msg=None):
         '''Send a notice to a specific user.'''
         if msg!=None:
             for i in msg.split('\n'):
                 if i:
-                    self.quote('NOTICE %s :%s' % (dest, i))
+                    self.quote('NOTICE %s :%s' % (rmnlsp(dest), rmcr(i)))
                 else:
-                    self.quote('NOTICE %s' % dest)
+                    self.quote('NOTICE %s' % rmnlsp(dest))
         else:
-            self.quote('NOTICE %s' % dest)
+            self.quote('NOTICE %s' % rmnlsp(dest))
     def topic(self, channel, newtopic=None):
         '''Set a new topic or get the current topic.'''
         if newtopic!=None:
             newtopic=' :'+newtopic
         else:
             newtopic=''
-        self.quote('TOPIC %s%s' % (channel, newtopic))
+        self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
     def recv(self, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         try:
