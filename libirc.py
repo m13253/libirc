@@ -148,14 +148,17 @@ class IRCConnection:
         else:
             newtopic=''
         self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
-    def recv(self, size=1024):
+    def recv(self, block=False, size=1024):
         '''Receive stream from server. Do not call it directly, it should be called by parse().'''
         if not self.sock:
             e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
             e.errno=errno.ENOTSOCK
             raise e
         try:
-            received=self.sock.recv(size, socket.MSG_DONTWAIT)
+            if block:
+                received=self.sock.recv(size)
+            else:
+                received=self.sock.recv(size, socket.MSG_DONTWAIT)
             if received:
                 self.buf+=received
             else:
@@ -170,19 +173,19 @@ class IRCConnection:
                 finally:
                     self.sock=None
                 raise
-    def recvline(self):
+    def recvline(self, block=False):
         '''Receive a line from server. It calls recv().'''
-        while self.buf.find(b'\n')==-1 and self.recv():
+        while self.buf.find(b'\n')==-1 and self.recv(block):
             pass
         if self.buf.find(b'\n')!=-1:
             line, self.buf=self.buf.split(b'\n', 1)
             return line.rstrip(b'\r').decode('utf-8', 'replace')
         else:
             return None
-    def parse(self, line=None):
+    def parse(self, block=False, line=None):
         '''Receive messages from server and process it. Returning a dictionary or None.'''
         if line==None:
-            line=self.recvline()
+            line=self.recvline(block)
         if line:
             try:
                 if line.startswith('PING '):
