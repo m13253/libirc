@@ -9,9 +9,14 @@ __doc__='''A Python module that allows you to connect to IRC in a simple way.'''
 # If you want a different value, change libirc.BUFFER_LENGTH after importing.
 BUFFER_LENGTH=1024
 
+if sys.version_info>=(3,):
+    tostr=str
+else:
+    tostr=unicode
+
 def stripcomma(s):
     '''Delete the comma if the string starts with a comma.'''
-    s=str(s)
+    s=tostr(s)
     if s.startswith(':'):
         return s[1:]
     else:
@@ -19,13 +24,13 @@ def stripcomma(s):
 
 def rmnl(s):
     '''Replace \\n with spaces from a string.'''
-    return str(s).replace('\r', '').strip('\n').replace('\n', ' ')
+    return tostr(s).replace('\r', '').strip('\n').replace('\n', ' ')
 def rmnlsp(s):
     '''Remove \\n and spaces from a string.'''
-    return str(s).replace('\r', '').replace('\n', '').replace(' ', '')
+    return tostr(s).replace('\r', '').replace('\n', '').replace(' ', '')
 def rmcr(s):
     '''Remove \\r from a string.'''
-    return str(s).replace('\r', '')
+    return tostr(s).replace('\r', '')
 
 class IRCConnection:
     def __init__(self):
@@ -250,8 +255,8 @@ class IRCConnection:
                 else:
                     msg=dest=cmd=None
                 try:
-                    if nick and cmd=='PRIVMSG' and msg and str(msg).startswith('\x01PING '):
-                        self.notice(str(nick), str(msg))
+                    if nick and cmd=='PRIVMSG' and msg and tostr(msg).startswith('\x01PING '):
+                        self.notice(tostr(nick), tostr(msg))
                 finally:
                     return {'nick': nick, 'ident': ident, 'cmd': cmd, 'dest': dest, 'msg': msg}
             except:
