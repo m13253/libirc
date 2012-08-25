@@ -179,7 +179,7 @@ class IRCConnection:
                 self.quit('Connection reset by peer.')
             return True
         except socket.error as e:
-            if e.errno in {socket.EAGAIN, socket.EWOULDBLOCK}:
+            if e.errno in (socket.EAGAIN, socket.EWOULDBLOCK):
                 return False
             else:
                 try:
