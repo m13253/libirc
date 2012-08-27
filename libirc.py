@@ -42,6 +42,7 @@ class IRCConnection:
         '''Connect to a IRC server.'''
         self.server=rmnlsp(server)
         self.sock=socket.socket()
+        self.sock.settimeout(300)
         self.sock.connect((self.server, port))
         self.nick=None
         self.buf=b''
