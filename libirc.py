@@ -93,7 +93,7 @@ class IRCConnection:
         else:
             reason=''
         self.quote('PART %s%s' % (rmnlsp(channel), rmnl(reason)))
-    def quit(self, reason='Leaving.'):
+    def quit(self, reason=None):
         '''Quit and disconnect from server. A reason is optional.'''
         if reason!=None:
             reason=' :'+reason
