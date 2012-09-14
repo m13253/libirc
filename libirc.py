@@ -37,7 +37,8 @@ class IRCConnection:
         self.server=None
         self.nick=None
         self.sock=None
-        self.buf=b''
+        self.recvbuf=b''
+        self.sendbuf=b''
     def connect(self, server='irc.freenode.net', port=6667):
         '''Connect to a IRC server.'''
         self.server=rmnlsp(server)
@@ -45,20 +46,21 @@ class IRCConnection:
         self.sock.settimeout(300)
         self.sock.connect((self.server, port))
         self.nick=None
-        self.buf=b''
+        self.recvbuf=b''
+        self.sendbuf=b''
     def quote(self, s):
         '''Send a raw IRC command. Split multiple commands using \\n.'''
         if not self.sock:
             e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
             e.errno=errno.ENOTSOCK
             raise e
-        sendbuf=b''
+        tmpbuf=b''
         for i in s.split('\n'):
             if i:
-                sendbuf+=i.encode('utf-8', 'replace')+b'\r\n'
-        if sendbuf:
+                tmpbuf+=i.encode('utf-8', 'replace')+b'\r\n'
+        if tmpbuf:
             try:
-                self.sock.sendall(sendbuf)
+                self.sock.sendall(tmpbuf)
             except socket.error as e:
                 try:
                     self.sock.close()
@@ -108,6 +110,7 @@ class IRCConnection:
                 self.sock.close()
             except:
                 pass
+        self.sendbuf=b''
         self.sock=None
         self.server=None
         self.nick=None
@@ -175,7 +178,7 @@ class IRCConnection:
             else:
                 received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
             if received:
-                self.buf+=received
+                self.recvbuf+=received
             else:
                 self.quit('Connection reset by peer.')
             return True
@@ -190,10 +193,10 @@ class IRCConnection:
                 raise
     def recvline(self, block=True):
         '''Receive a raw line from server.\nIt calls recv(), and is called by parse() when line==None.\nIts output can be the 'line' argument of parse()'s input.'''
-        while self.buf.find(b'\n')==-1 and self.recv(block):
+        while self.recvbuf.find(b'\n')==-1 and self.recv(block):
             pass
-        if self.buf.find(b'\n')!=-1:
-            line, self.buf=self.buf.split(b'\n', 1)
+        if self.recvbuf.find(b'\n')!=-1:
+            line, self.recvbuf=self.recvbuf.split(b'\n', 1)
             return line.rstrip(b'\r').decode('utf-8', 'replace')
         else:
             return None
