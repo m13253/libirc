@@ -22,6 +22,20 @@ def stripcomma(s):
     else:
         return s
 
+def tolist(s, f=None):
+    if f==None:
+        try:
+            if isinstance(s, (str, tostr)):
+                return [s]
+            elif isinstance(s, (tuple, list)):
+                return s
+            else:
+                return list(s)
+        except TypeError:
+            return [tostr(s)]
+    else:
+        return list(map(f, tolist(s)))
+
 def rmnl(s):
     '''Replace \\n with spaces from a string.'''
     return tostr(s).replace('\r', '').strip('\n').replace('\n', ' ')
