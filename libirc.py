@@ -57,7 +57,7 @@ class IRCConnection:
         self.sendbuf=b''
         self.buffer_length=DEFAULT_BUFFER_LENGTH
         self.lock=threading.RLock()
-        self.recvlock=threading.Lock()
+        self.recvlock=threading.RLock()
     def acquire_lock(self, blocking=True):
         if self.lock.acquire(blocking):
             return True
