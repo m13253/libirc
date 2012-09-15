@@ -3,6 +3,7 @@
 import errno
 import socket
 import sys
+import threading
 
 __doc__='''A Python module that allows you to connect to IRC in a simple way.'''
 
@@ -48,95 +49,139 @@ def rmcr(s):
 
 class IRCConnection:
     def __init__(self):
-        self.server=None
+        self.addr=None
         self.nick=None
         self.sock=None
         self.recvbuf=b''
         self.sendbuf=b''
-    def connect(self, server='irc.freenode.net', port=6667):
-        '''Connect to a IRC server.'''
-        self.server=rmnlsp(server)
-        self.sock=socket.socket()
-        self.sock.settimeout(300)
-        self.sock.connect((self.server, port))
-        self.nick=None
-        self.recvbuf=b''
-        self.sendbuf=b''
-    def quote(self, s):
+        self.lock=threading.RLock()
+    def acquire_lock(self, blocking=True):
+        if self.lock.acquire(blocking):
+            return True
+        elif blocking:
+            raise threading.ThreadError('Cannot acquire lock.')
+        else:
+            return False
+    def connect(self, addr=('irc.freenode.net', 6667)):
+        '''Connect to a IRC server. addr is a tuple of (server, port)'''
+        self.acquire_lock()
+        try:
+            self.addr=(rmnlsp(addr[0]), addr[1])
+            self.sock=socket.socket()
+            self.sock.settimeout(300)
+            self.sock.connect(self.addr)
+            self.nick=None
+            self.recvbuf=b''
+            self.sendbuf=b''
+        finally:
+            self.lock.release()
+    def quote(self, s, sendnow=True):
         '''Send a raw IRC command. Split multiple commands using \\n.'''
-        if not self.sock:
-            e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
-            e.errno=errno.ENOTSOCK
-            raise e
         tmpbuf=b''
-        for i in s.split('\n'):
+        for i in s.splitlines():
             if i:
                 tmpbuf+=i.encode('utf-8', 'replace')+b'\r\n'
         if tmpbuf:
+            self.acquire_lock()
             try:
-                self.sock.sendall(tmpbuf)
+                if sendnow:
+                    self.send(tmpbuf)
+                else:
+                    self.sendbuf+=tmpbuf
+            finally:
+                self.lock.release()
+    def send(self, sendbuf=None):
+        '''Flush the send buffer.'''
+        self.acquire_lock()
+        try:
+            if not self.sock:
+                e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
+                e.errno=errno.ENOTSOCK
+                raise e
+            try:
+                if sendbuf==None:
+                    if self.sendbuf:
+                        self.sock.sendall(self.sendbuf)
+                    self.sendbuf=b''
+                elif sendbuf:
+                    self.sock.sendall(sendbuf)
             except socket.error as e:
                 try:
                     self.sock.close()
                 finally:
                     self.sock=None
                 raise
-    def setpass(self, passwd):
+                self.quit('Network error.', wait=False)
+        finally:
+            self.lock.release()
+    def setpass(self, passwd, sendnow=True):
         '''Send password, it should be used before setnick().\nThis password is different from that one sent to NickServ and it is usually unnecessary.'''
-        self.quote('PASS %s' % rmnl(passwd))
-    def setnick(self, newnick):
+        self.quote('PASS %s' % rmnl(passwd), sendnow=sendnow)
+    def setnick(self, newnick, sendnow=True):
         '''Set nickname.'''
         self.nick=rmnlsp(newnick)
-        self.quote('NICK %s' % self.nick)
-    def setuser(self, ident=None, realname=None):
+        self.quote('NICK %s' % self.nick, sendnow=sendnow)
+    def setuser(self, ident=None, realname=None, sendnow=True):
         '''Set user ident and real name.'''
         if ident==None:
             ident=self.nick
         if realname==None:
             realname=ident
-        self.quote('USER %s %s bla :%s' % (rmnlsp(ident), rmnlsp(self.server), rmnl(realname)))
-    def join(self, channel, key=None):
+        self.quote('USER %s %s bla :%s' % (rmnlsp(ident), rmnlsp(self.addr[0]), rmnl(realname)), sendnow=sendnow)
+    def join(self, channel, key=None, sendnow=True):
         '''Join channel. A password is optional.'''
         if key!=None:
             key=' '+key
         else:
             key=''
-        self.quote('JOIN %s%s' % (rmnlsp(channel), rmnl(key)))
-    def part(self, channel, reason=None):
+        self.quote('JOIN %s%s' % (' '.join(tolist(channel, rmnlsp)), rmnl(key)), sendnow=sendnow)
+    def part(self, channel, reason=None, sendnow=True):
         '''Leave channel. A reason is optional.'''
         if reason!=None:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('PART %s%s' % (rmnlsp(channel), rmnl(reason)))
-    def quit(self, reason=None):
-        '''Quit and disconnect from server. A reason is optional.'''
+        self.quote('PART %s%s' % (' '.join(tolist(channel, rmnlsp), rmnl(reason))), sendnow=sendnow)
+    def quit(self, reason=None, wait=True):
+        '''Quit and disconnect from server. A reason is optional. If wait is True, the send buffer will be flushed.'''
         if reason!=None:
             reason=' :'+reason
         else:
             reason=''
-        if self.sock:
-            try:
-                self.quote('QUIT%s' % rmnl(reason))
-            except:
-                pass
-            try:
-                self.sock.close()
-            except:
-                pass
-        self.sendbuf=b''
-        self.sock=None
-        self.server=None
-        self.nick=None
-    def say(self, dest, msg):
+        self.acquire_lock()
+        try:
+            if self.sock:
+                try:
+                    if wait:
+                        self.quote('QUIT%s' % rmnl(reason), sendnow=False)
+                        self.send()
+                    else:
+                        self.quote('QUIT%s' % rmnl(reason), sendnow=True)
+                except:
+                    pass
+                try:
+                    self.sock.close()
+                except:
+                    pass
+            self.sendbuf=b''
+            self.sock=None
+            self.addr=None
+            self.nick=None
+        finally:
+            self.lock.release()
+    def say(self, dest, msg, sendnow=True):
         '''Send a message to a channel, or a private message to a person.'''
-        for i in msg.split('\n'):
-            self.quote('PRIVMSG %s :%s' % (rmnlsp(dest), rmcr(i)))
-    def me(self, dest, action):
+        tmpbuf=''
+        for i in msg.splitlines():
+            tmpbuf+='PRIVMSG %s :%s\n' % (rmnlsp(dest), rmcr(i))
+        self.quote(tmpbuf, sendnow=sendnow)
+    def me(self, dest, action, sendnow=True):
         '''Send an action message.'''
-        for i in action.split('\n'):
-            self.say(rmnlsp(dest), '\x01ACTION %s\x01' % i)
-    def mode(self, target, newmode=None):
+        tmpbuf=''
+        for i in action.splitlines():
+            tmpbuf+='\x01ACTION %s\x01' % i
+        self.say(rmnlsp(dest), tmpbuf, sendnow=sendnow)
+    def mode(self, target, newmode=None, sendnow=True):
         '''Read or set mode of a nick or a channel.'''
         if newmode!=None:
             if target.startswith('#') or target.startswith('&'):
@@ -145,73 +190,87 @@ class IRCConnection:
                 newmode=' :'+newmode
         else:
             newmode=''
-        self.quote('MODE %s%s' % (rmnlsp(target), rmnl(newmode)))
-    def kick(self, channel, target, reason=None):
+        self.quote('MODE %s%s' % (rmnlsp(target), rmnl(newmode)), sendnow=sendnow)
+    def kick(self, channel, target, reason=None, sendnow=True):
         '''Kick a person out of the channel.'''
         if reason!=None:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('KICK %s %s%s' % (rmnlsp(channel), rmnlsp(target), rmnl(reason)))
-    def away(self, state=None):
+        self.quote('KICK %s %s%s' % (rmnlsp(channel), rmnlsp(target), rmnl(reason)), sendnow=sendnow)
+    def away(self, state=None, sendnow=True):
         '''Set away status with an argument, or cancal away status without the argument'''
         if state!=None:
             state=' :'+state
         else:
             state=''
-        self.quote('AWAY%s' % rmnl(state))
-    def invite(self, target, channel):
+        self.quote('AWAY%s' % rmnl(state), sendnow=sendnow)
+    def invite(self, target, channel, sendnow=True):
         '''Invite a specific user to an invite-only channel.'''
-        self.quote('INVITE %s %s' % (rmnlsp(target), rmnlsp(channel)))
-    def notice(self, dest, msg=None):
+        self.quote('INVITE %s %s' % (rmnlsp(target), rmnlsp(channel)), sendnow=sendnow)
+    def notice(self, dest, msg=None, sendnow=True):
         '''Send a notice to a specific user.'''
         if msg!=None:
-            for i in msg.split('\n'):
+            tmpbuf=''
+            for i in msg.splitlines():
                 if i:
-                    self.quote('NOTICE %s :%s' % (rmnlsp(dest), rmcr(i)))
+                    tmpbuf+='NOTICE %s :%s' % (rmnlsp(dest), rmcr(i))
                 else:
-                    self.quote('NOTICE %s' % rmnlsp(dest))
+                    tmpbuf+='NOTICE %s' % rmnlsp(dest)
+            self.quote(tmpbuf, sendnow=sendnow)
         else:
-            self.quote('NOTICE %s' % rmnlsp(dest))
-    def topic(self, channel, newtopic=None):
+            self.quote('NOTICE %s' % rmnlsp(dest), sendnow=sendnow)
+    def topic(self, channel, newtopic=None, sendnow=True):
         '''Set a new topic or get the current topic.'''
         if newtopic!=None:
             newtopic=' :'+newtopic
         else:
             newtopic=''
-        self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)))
+        self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)), sendnow=sendnow)
     def recv(self, block=True):
         '''Receive stream from server.\nDo not call it directly, it should be called by parse() or recvline().'''
-        if not self.sock:
-            e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
-            e.errno=errno.ENOTSOCK
-            raise e
-        try:
-            if block:
-                received=self.sock.recv(BUFFER_LENGTH)
-            else:
-                received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
-            if received:
-                self.recvbuf+=received
-            else:
-                self.quit('Connection reset by peer.')
-            return True
-        except socket.error as e:
-            if e.errno in (socket.EAGAIN, socket.EWOULDBLOCK):
-                return False
-            else:
+        if self.acquire_lock(block):
+            try:
+                if not self.sock:
+                    e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
+                    e.errno=errno.ENOTSOCK
+                    raise e
                 try:
-                    self.quit('Network error.')
-                finally:
-                    self.sock=None
-                raise
+                    if block:
+                        received=self.sock.recv(BUFFER_LENGTH)
+                    else:
+                        received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
+                    if received:
+                        self.recvbuf+=received
+                    else:
+                        self.quit('Connection reset by peer.', wait=False)
+                    return True
+                except socket.error as e:
+                    if e.errno in (socket.EAGAIN, socket.EWOULDBLOCK):
+                        return False
+                    else:
+                        try:
+                            self.quit('Network error.', wait=False)
+                        finally:
+                            self.sock=None
+                        raise
+            finally:
+                self.lock.release()
+        else:
+            return False
     def recvline(self, block=True):
         '''Receive a raw line from server.\nIt calls recv(), and is called by parse() when line==None.\nIts output can be the 'line' argument of parse()'s input.'''
-        while self.recvbuf.find(b'\n')==-1 and self.recv(block):
-            pass
-        if self.recvbuf.find(b'\n')!=-1:
-            line, self.recvbuf=self.recvbuf.split(b'\n', 1)
-            return line.rstrip(b'\r').decode('utf-8', 'replace')
+        if self.acquire_lock():
+            try:
+                while self.recvbuf.find(b'\n')==-1 and self.recv(block):
+                    pass
+                if self.recvbuf.find(b'\n')!=-1:
+                    line, self.recvbuf=self.recvbuf.split(b'\n', 1)
+                    return line.rstrip(b'\r').decode('utf-8', 'replace')
+                else:
+                    return None
+            finally:
+                self.lock.release()
         else:
             return None
     def parse(self, block=True, line=None):
@@ -222,7 +281,7 @@ class IRCConnection:
             try:
                 if line.startswith('PING '):
                     try:
-                        self.quote('PONG %s' % line[5:])
+                        self.quote('PONG %s' % line[5:], sendnow=True)
                     finally:
                         return {'nick': None, 'ident': None, 'cmd': 'PING', 'dest': None, 'msg': stripcomma(line[5:])}
                 if line.startswith(':'):
@@ -274,7 +333,7 @@ class IRCConnection:
                     msg=dest=cmd=None
                 try:
                     if nick and cmd=='PRIVMSG' and msg and tostr(msg).startswith('\x01PING '):
-                        self.notice(tostr(nick), tostr(msg))
+                        self.notice(tostr(nick), tostr(msg), sendnow=True)
                 finally:
                     return {'nick': nick, 'ident': ident, 'cmd': cmd, 'dest': dest, 'msg': msg}
             except:
@@ -283,6 +342,6 @@ class IRCConnection:
             return None
     def __del__(self):
         if self.sock:
-            self.quit()
+            self.quit(wait=False)
 
 # vim: et ft=python sts=4 sw=4 ts=4
