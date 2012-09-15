@@ -6,6 +6,7 @@ import errno
 import socket
 import sys
 import threading
+import time
 
 __all__=['IRCConnection']
 
@@ -158,6 +159,7 @@ class IRCConnection:
                         self.quote('QUIT%s' % rmnl(reason), sendnow=True)
                 except:
                     pass
+                time.sleep(2)
                 try:
                     self.sock.close()
                 except:
