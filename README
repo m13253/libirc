@@ -4,60 +4,7 @@ A Python module that allows you to connect to IRC in a simple way.
 This module can work on both Python 2 and 3, however, you need to use Unicode
 strings if you use Python 2.
 
-Usage Example:
-    #!/usr/bin/env python
+This module has two layers: IRCConnection and IRCClient.
+The former uses polling, and the latter, which can handle more things like name listing, uses callback.
 
-    import libirc
-    import time
-
-    my_irc_connection = libirc.IRCConnection()
-
-    # Connect to the server and identify yourself
-    my_irc_connection.connect(host, port)
-    my_irc_connection.setnick(nickname)
-    my_irc_connection.setuser(ident, realname)
-    my_irc_connection.join(channel)
-
-    # You can send messages
-    my_irc_connection.say(channel, 'I am coming!')
-    my_irc_connection.say(someone, 'I can send you a private message!')
-
-    # Or keep receiving messages
-    while my_irc_connection.sock: # Receiving loop
-        response = my_irc_connection.parse(block=True)
-        if response: # If nothing is received, response will be None
-            pass     # Do your stuff here, e.g. if response.cmd=='PRIVMSG':
-
-    # Non-blocking receiving
-    while my_irc_connection.sock: # Receiving loop
-        response = my_irc_connection.parse(block=False)
-        if response: # If received something
-            pass     # Do your stuff here, e.g. if response.cmd=='PRIVMSG':
-        else:        # If nothing is received, response will be None
-            time.sleep(2) # Wait a moment
-
-
-    # Notice:
-
-    # Libirc handles PING and CTCP PING automatically when you use parse().
-    # parse() still returns the detail of that PING, but you do not need to
-    # process it yourself.
-
-    # You should call parse() at most every 4 minutes, or the server will
-    # disconnect from you.
-
-    # When libirc detects a network error, it will raise socket.error. If the
-    # network connection is terminated, its errno should be errno.ENOTSOCK or
-    # errno.EPIPE.
-
-    # If you would like to receive raw stream from the server, use recvline(),
-    # after that, you can still parse it, since parse() equals to
-    # parse(line=recvline()).
-
-
-    # Leave a channel or disconnect from server
-    my_irc_connection.part(channel, 'I am leaving!')
-    my_irc_connection.quit('Goodbye, server!')
-
-    # For more help, use help(libirc)
-
+For example, view EXAMPLE.
