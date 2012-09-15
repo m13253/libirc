@@ -3,10 +3,10 @@
 '''A Python module that allows you to connect to IRC in a simple way.'''
 
 try:
-    from libirc.ircconnection import *
+    from libirc.libirc import *
 except ImportError:
-    from ircconnection import *
+    from libirc import *
 
-__all__=['ircconnection']
+__all__=['libirc']
 
 # vim: et ft=python sts=4 sw=4 ts=4
