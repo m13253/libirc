@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
+'''A Python module that allows you to connect to IRC in a simple way.'''
+
 import errno
 import socket
 import sys
 import threading
 
-__doc__='''A Python module that allows you to connect to IRC in a simple way.'''
 __all__=['IRCConnection']
 
 DEFAULT_BUFFER_LENGTH=1024
