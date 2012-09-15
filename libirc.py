@@ -6,9 +6,9 @@ import sys
 import threading
 
 __doc__='''A Python module that allows you to connect to IRC in a simple way.'''
+__all__=['IRCConnection']
 
-# If you want a different value, change libirc.BUFFER_LENGTH after importing.
-BUFFER_LENGTH=1024
+DEFAULT_BUFFER_LENGTH=1024
 
 if sys.version_info>=(3,):
     tostr=str
@@ -54,6 +54,7 @@ class IRCConnection:
         self.sock=None
         self.recvbuf=b''
         self.sendbuf=b''
+        self.buffer_length=DEFAULT_BUFFER_LENGTH
         self.lock=threading.RLock()
     def acquire_lock(self, blocking=True):
         if self.lock.acquire(blocking):
@@ -237,12 +238,12 @@ class IRCConnection:
                     raise e
                 try:
                     if block:
-                        received=self.sock.recv(BUFFER_LENGTH)
+                        received=self.sock.recv(self.buffer_length)
                     else:
                         oldtimeout=self.sock.gettimeout()
                         self.sock.settimeout(0)
                         try:
-                            received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
+                            received=self.sock.recv(self.buffer_length, socket.MSG_DONTWAIT)
                         finally:
                             self.sock.settimeout(oldtimeout)
                             del oldtimeout
