@@ -2,7 +2,10 @@
 
 '''A Python module that allows you to connect to IRC in a simple way.'''
 
-from libirc.ircconnection import *
+try:
+    from libirc.ircconnection import *
+except ImportError:
+    from ircconnection import *
 
 __all__=['ircconnection']
 
