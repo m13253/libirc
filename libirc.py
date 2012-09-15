@@ -239,12 +239,24 @@ class IRCConnection:
                     if block:
                         received=self.sock.recv(BUFFER_LENGTH)
                     else:
-                        received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
+                        oldtimeout=self.sock.gettimeout()
+                        self.sock.settimeout(0)
+                        try:
+                            received=self.sock.recv(BUFFER_LENGTH, socket.MSG_DONTWAIT)
+                        finally:
+                            self.sock.settimeout(oldtimeout)
+                            del oldtimeout
                     if received:
                         self.recvbuf+=received
                     else:
                         self.quit('Connection reset by peer.', wait=False)
                     return True
+                except socket.timeout as e:
+                    try:
+                        self.quit('Operation timed out.', wait=False)
+                    finally:
+                        self.sock=None
+                    raise
                 except socket.error as e:
                     if e.errno in (socket.EAGAIN, socket.EWOULDBLOCK):
                         return False
