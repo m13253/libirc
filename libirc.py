@@ -57,6 +57,7 @@ class IRCConnection:
         self.sendbuf=b''
         self.buffer_length=DEFAULT_BUFFER_LENGTH
         self.lock=threading.RLock()
+        self.recvlock=threading.Lock()
     def acquire_lock(self, blocking=True):
         if self.lock.acquire(blocking):
             return True
@@ -231,7 +232,7 @@ class IRCConnection:
         self.quote('TOPIC %s%s' % (rmnlsp(channel), rmnl(newtopic)), sendnow=sendnow)
     def recv(self, block=True):
         '''Receive stream from server.\nDo not call it directly, it should be called by parse() or recvline().'''
-        if self.acquire_lock(block):
+        if self.recvlock.acquire():
             try:
                 if not self.sock:
                     e=socket.error('[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
@@ -269,7 +270,9 @@ class IRCConnection:
                             self.sock=None
                         raise
             finally:
-                self.lock.release()
+                self.recvlock.release()
+        elif block:
+            raise threading.ThreadError('Cannot acquire lock.')
         else:
             return False
     def recvline(self, block=True):
