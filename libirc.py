@@ -85,14 +85,10 @@ class IRCConnection:
             if i:
                 tmpbuf+=i.encode('utf-8', 'replace')+b'\r\n'
         if tmpbuf:
-            self.acquire_lock()
-            try:
-                if sendnow:
-                    self.send(tmpbuf)
-                else:
-                    self.sendbuf+=tmpbuf
-            finally:
-                self.lock.release()
+            if sendnow:
+                self.send(tmpbuf)
+            else:
+                self.sendbuf+=tmpbuf
     def send(self, sendbuf=None):
         '''Flush the send buffer.'''
         self.acquire_lock()
