@@ -273,7 +273,7 @@ class IRCConnection:
             return False
     def recvline(self, block=True):
         '''Receive a raw line from server.\nIt calls recv(), and is called by parse() when line==None.\nIts output can be the 'line' argument of parse()'s input.'''
-        if self.acquire_lock():
+        if self.recvlock.acquire(blocking=block):
             try:
                 while self.recvbuf.find(b'\n')==-1 and self.recv(block):
                     pass
@@ -283,7 +283,7 @@ class IRCConnection:
                 else:
                     return None
             finally:
-                self.lock.release()
+                self.recvlock.release()
         else:
             return None
     def parse(self, block=True, line=None):
