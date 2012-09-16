@@ -39,6 +39,9 @@ def tolist(s, f=None):
     else:
         return list(map(f, tolist(s)))
 
+def catchannel(s):
+    return ','.join(tolist(s, rmnlsp))
+
 def rmnl(s):
     '''Replace \\n with spaces from a string.'''
     return tostr(s).replace('\r', '').strip('\n').replace('\n', ' ')
@@ -134,14 +137,14 @@ class IRCConnection:
             key=' '+key
         else:
             key=''
-        self.quote('JOIN %s%s' % (' '.join(tolist(channel, rmnlsp)), rmnl(key)), sendnow=sendnow)
+        self.quote('JOIN %s%s' % (catchannel(channel), rmnl(key)), sendnow=sendnow)
     def part(self, channel, reason=None, sendnow=True):
         '''Leave channel. A reason is optional.'''
         if reason!=None:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('PART %s%s' % (' '.join(tolist(channel, rmnlsp), rmnl(reason))), sendnow=sendnow)
+        self.quote('PART %s%s' % (catchannel(channel), rmnl(reason))), sendnow=sendnow)
     def quit(self, reason=None, wait=True):
         '''Quit and disconnect from server. A reason is optional. If wait is True, the send buffer will be flushed.'''
         if reason!=None:
@@ -174,14 +177,14 @@ class IRCConnection:
         '''Send a message to a channel, or a private message to a person.'''
         tmpbuf=''
         for i in msg.splitlines():
-            tmpbuf+='PRIVMSG %s :%s\n' % (rmnlsp(dest), rmcr(i))
+            tmpbuf+='PRIVMSG %s :%s\n' % (catchannel(dest), rmcr(i))
         self.quote(tmpbuf, sendnow=sendnow)
     def me(self, dest, action, sendnow=True):
         '''Send an action message.'''
         tmpbuf=''
         for i in action.splitlines():
             tmpbuf+='\x01ACTION %s\x01' % i
-        self.say(rmnlsp(dest), tmpbuf, sendnow=sendnow)
+        self.say(dest, tmpbuf, sendnow=sendnow)
     def mode(self, target, newmode=None, sendnow=True):
         '''Read or set mode of a nick or a channel.'''
         if newmode!=None:
