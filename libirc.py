@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 
-__all__=['IRCConnection']
+__all__=['IRCConnection', 'IRCClient']
 
 DEFAULT_BUFFER_LENGTH=1024
 
@@ -358,5 +358,15 @@ class IRCConnection:
     def __del__(self):
         if self.sock:
             self.quit(wait=False)
+
+class IRCClient:
+    def __init__(self):
+        self.connection=IRCConnection()
+
+    def connect(self, addr=('irc.freenode.net', 6667)):
+        self.connection.connect(addr)
+
+    def quit(self, reason=None, wait=True):
+        self.connection.quit()
 
 # vim: et ft=python sts=4 sw=4 ts=4
