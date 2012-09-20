@@ -144,7 +144,7 @@ class IRCConnection:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('PART %s%s' % (catchannel(channel), rmnl(reason))), sendnow=sendnow)
+        self.quote('PART %s%s' % (catchannel(channel), rmnl(reason)), sendnow=sendnow)
     def quit(self, reason=None, wait=True):
         '''Quit and disconnect from server. A reason is optional. If wait is True, the send buffer will be flushed.'''
         if reason!=None:
