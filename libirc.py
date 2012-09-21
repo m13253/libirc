@@ -269,7 +269,7 @@ class IRCConnection:
                         self.sock=None
                     raise
                 except socket.error as e:
-                    if e.errno in (socket.EAGAIN, socket.EWOULDBLOCK):
+                    if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
                         return False
                     else:
                         try:
