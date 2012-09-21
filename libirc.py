@@ -4,6 +4,7 @@
 
 import errno
 import socket
+import ssl
 import sys
 import threading
 import time
@@ -69,12 +70,18 @@ class IRCConnection:
             raise threading.ThreadError('Cannot acquire lock.')
         else:
             return False
-    def connect(self, addr=('irc.freenode.net', 6667)):
+    def connect(self, addr=('irc.freenode.net', 6667), use_ssl=False):
         '''Connect to a IRC server. addr is a tuple of (server, port)'''
         self.acquire_lock()
         try:
             self.addr=(rmnlsp(addr[0]), addr[1])
-            self.sock=socket.socket()
+            if use_ssl:
+                if sys.version_info>=(3,):
+                    self.sock=ssl.SSLSocket()
+                else:
+                    self.sock=ssl.SSLSocket(sock=socket.socket())
+            else:
+                self.sock=socket.socket()
             self.sock.settimeout(300)
             self.sock.connect(self.addr)
             self.nick=None
@@ -144,7 +151,7 @@ class IRCConnection:
             reason=' :'+reason
         else:
             reason=''
-        self.quote('PART %s%s' % (catchannel(channel), rmnl(reason))), sendnow=sendnow)
+        self.quote('PART %s%s' % (catchannel(channel), rmnl(reason)), sendnow=sendnow)
     def quit(self, reason=None, wait=True):
         '''Quit and disconnect from server. A reason is optional. If wait is True, the send buffer will be flushed.'''
         if reason!=None:
