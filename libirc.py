@@ -137,7 +137,7 @@ class IRCConnection:
             ident=self.nick
         if realname==None:
             realname=ident
-        self.quote('USER %s %s bla :%s' % (rmnlsp(ident), rmnlsp(self.addr[0]), rmnl(realname)), sendnow=sendnow)
+        self.quote('USER %s %s %s :%s' % (rmnlsp(ident), rmnlsp(ident), rmnlsp(self.addr[0]), rmnl(realname)), sendnow=sendnow)
     def join(self, channel, key=None, sendnow=True):
         '''Join channel. A password is optional.'''
         if key!=None:
