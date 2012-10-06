@@ -372,9 +372,13 @@ class IRCConnection:
 class IRCClient:
     def __init__(self):
         self.connection=IRCConnection()
+        self.handlers={}
+        self.roaster={}
 
-    def connect(self, addr=('irc.freenode.net', 6667)):
+    def connect(self, addr, nick, ident=None, realname=None):
         self.connection.connect(addr)
+        self.setnick(nick)
+        self.setuser(ident, realname);
 
     def quit(self, reason=None, wait=True):
         self.connection.quit()
