@@ -76,7 +76,7 @@ class IRCConnection:
         try:
             self.addr=(rmnlsp(addr[0]), addr[1])
             if use_ssl:
-                if sys.version_info>=(3,):
+                if (3,)<=sys.version_info<(3,4):
                     self.sock=ssl.SSLSocket()
                 else:
                     self.sock=ssl.SSLSocket(sock=socket.socket())
