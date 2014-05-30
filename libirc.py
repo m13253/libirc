@@ -9,7 +9,7 @@ import sys
 import threading
 import time
 
-__all__=['IRCConnection']
+__all__=['IRCConnection', 'IRCClient']
 
 DEFAULT_BUFFER_LENGTH=1024
 
@@ -76,7 +76,7 @@ class IRCConnection:
         try:
             self.addr=(rmnlsp(addr[0]), addr[1])
             if use_ssl:
-                if sys.version_info>=(3,):
+                if (3,)<=sys.version_info<(3,4):
                     self.sock=ssl.SSLSocket()
                 else:
                     self.sock=ssl.SSLSocket(sock=socket.socket())
@@ -368,5 +368,19 @@ class IRCConnection:
     def __del__(self):
         if self.sock:
             self.quit(wait=False)
+
+class IRCClient:
+    def __init__(self):
+        self.connection=IRCConnection()
+        self.handlers={}
+        self.roaster={}
+
+    def connect(self, addr, nick, ident=None, realname=None):
+        self.connection.connect(addr)
+        self.setnick(nick)
+        self.setuser(ident, realname);
+
+    def quit(self, reason=None, wait=True):
+        self.connection.quit()
 
 # vim: et ft=python sts=4 sw=4 ts=4
