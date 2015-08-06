@@ -4,6 +4,7 @@
 
 import errno
 import socket
+import select
 import ssl
 import sys
 import threading
@@ -285,14 +286,24 @@ class IRCConnection:
                     e.errno = errno.ENOTSOCK
                     raise e
                 try:
+                    received = b''
                     if block:
                         received = self.sock.recv(self.buffer_length)
                     else:
                         oldtimeout = self.sock.gettimeout()
                         self.sock.settimeout(0)
                         try:
-                            received = self.sock.recv(
-                                self.buffer_length, socket.MSG_DONTWAIT)
+                            if isinstance(self.sock, ssl.SSLSocket):
+                                received = self.sock.recv(self.buffer_length)
+                            else:
+                                received = self.sock.recv(
+                                    self.buffer_length, socket.MSG_DONTWAIT)
+                        except ssl.SSLWantReadError:
+                            select.select([self.sock], [], [])
+                            received = self.sock.recv(self.buffer_length)
+                        except ssl.SSLWantWriteError:
+                            select.select([], [self.sock], [])
+                            received = self.sock.recv(self.buffer_length)
                         finally:
                             self.sock.settimeout(oldtimeout)
                             del oldtimeout
