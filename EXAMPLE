@@ -7,7 +7,7 @@ IRCConnection example:
     my_irc_connection = libirc.IRCConnection()
 
     # Connect to the server and identify yourself
-    my_irc_connection.connect(host, port)
+    my_irc_connection.connect((host, port))
     my_irc_connection.setnick(nickname)
     my_irc_connection.setuser(ident, realname)
     my_irc_connection.join(channel)
