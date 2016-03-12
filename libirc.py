@@ -4,7 +4,6 @@
 
 import errno
 import socket
-import select
 import ssl
 import sys
 import threading
