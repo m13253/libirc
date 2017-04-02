@@ -289,53 +289,61 @@ class IRCConnection:
             else:
                 return False
 
-        try:
-            if not self.sock:
-                e = socket.error(
-                    '[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
-                e.errno = errno.ENOTSOCK
-                raise e
+        retry = 0
+        for i in range(1):
             try:
-                if block:
-                    received = self.sock.recv(self.buffer_length)
-                else:
-                    oldtimeout = self.sock.gettimeout()
-                    self.sock.settimeout(0)
-                    try:
-                        if isinstance(self.sock, ssl.SSLSocket):
-                            received = self.sock.recv(self.buffer_length)
-                        else:
-                            received = self.sock.recv(
-                                self.buffer_length, socket.MSG_DONTWAIT)
-                    finally:
-                        self.sock.settimeout(oldtimeout)
-                        del oldtimeout
-                if received:
-                    self.recvbuf += received
-                else:
-                    self.quit('Connection reset by peer.', wait=False)
-                return True
-            except (ssl.SSLWantReadError, ssl.SSLWantWriteError) as e:
-                # can be a subclass of socket.error
-                return False
-            except socket.timeout as e:
+                if not self.sock:
+                    e = socket.error(
+                        '[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
+                    e.errno = errno.ENOTSOCK
+                    raise e
                 try:
-                    timeout_threshold = self.sock.gettimeout()
-                    self.quit('Operation timed out after %s seconds.' % timeout_threshold, wait=False)
-                finally:
-                    self.sock = None
-                raise
-            except socket.error as e:
-                if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
+                    if block:
+                        received = self.sock.recv(self.buffer_length)
+                        retry = 0
+                    else:
+                        oldtimeout = self.sock.gettimeout()
+                        self.sock.settimeout(0)
+                        try:
+                            if isinstance(self.sock, ssl.SSLSocket):
+                                received = self.sock.recv(self.buffer_length)
+                            else:
+                                received = self.sock.recv(
+                                    self.buffer_length, socket.MSG_DONTWAIT)
+                        finally:
+                            self.sock.settimeout(oldtimeout)
+                            del oldtimeout
+                    if received:
+                        self.recvbuf += received
+                    else:
+                        self.quit('Connection reset by peer.', wait=False)
+                    return True
+                except (ssl.SSLWantReadError, ssl.SSLWantWriteError) as e:
+                    # can be a subclass of socket.error
                     return False
-                else:
-                    try:
-                        self.quit('Network error.', wait=False)
-                    finally:
-                        self.sock = None
-                    raise
-        finally:
-            self.recvlock.release()
+                except socket.timeout as e:
+                    if retry <= 1:
+                        self.quote('PING %s' % self.nick)
+                        retry += 1
+                    else:
+                        retry = 0
+                        try:
+                            timeout_threshold = self.sock.gettimeout()
+                            self.quit('Operation timed out after %s seconds.' % timeout_threshold, wait=False)
+                        finally:
+                            self.sock = None
+                        raise
+                except socket.error as e:
+                    if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
+                        return False
+                    else:
+                        try:
+                            self.quit('Network error.', wait=False)
+                        finally:
+                            self.sock = None
+                        raise
+            finally:
+                self.recvlock.release()
 
     def recvline(self, block=True):
         '''Receive a raw line from server.\nIt calls recv(), and is called by parse() when line==None.\nIts output can be the 'line' argument of parse()'s input.'''
