@@ -315,7 +315,8 @@ class IRCConnection:
                     return False
                 except socket.timeout as e:
                     try:
-                        self.quit('Operation timed out.', wait=False)
+                        timeout_threshold = self.sock.gettimeout()
+                        self.quit('Operation timed out after %s seconds.' % timeout_threshold, wait=False)
                     finally:
                         self.sock = None
                     raise
