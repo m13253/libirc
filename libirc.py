@@ -283,7 +283,14 @@ class IRCConnection:
 
     def recv(self, block=True):
         '''Receive stream from server.\nDo not call it directly, it should be called by parse() or recvline().'''
-        if self.recvlock.acquire():
+        if not self.recvlock.acquire():
+            if block:
+                raise threading.ThreadError('Cannot acquire lock.')
+            else:
+                return False
+
+        retry = 0
+        for i in range(1):
             try:
                 if not self.sock:
                     e = socket.error(
@@ -293,6 +300,7 @@ class IRCConnection:
                 try:
                     if block:
                         received = self.sock.recv(self.buffer_length)
+                        retry = 0
                     else:
                         oldtimeout = self.sock.gettimeout()
                         self.sock.settimeout(0)
@@ -314,11 +322,17 @@ class IRCConnection:
                     # can be a subclass of socket.error
                     return False
                 except socket.timeout as e:
-                    try:
-                        self.quit('Operation timed out.', wait=False)
-                    finally:
-                        self.sock = None
-                    raise
+                    if retry <= 1:
+                        self.quote('PING %s' % self.nick)
+                        retry += 1
+                    else:
+                        retry = 0
+                        try:
+                            timeout_threshold = self.sock.gettimeout()
+                            self.quit('Operation timed out after %s seconds.' % timeout_threshold, wait=False)
+                        finally:
+                            self.sock = None
+                        raise
                 except socket.error as e:
                     if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
                         return False
@@ -330,10 +344,6 @@ class IRCConnection:
                         raise
             finally:
                 self.recvlock.release()
-        elif block:
-            raise threading.ThreadError('Cannot acquire lock.')
-        else:
-            return False
 
     def recvline(self, block=True):
         '''Receive a raw line from server.\nIt calls recv(), and is called by parse() when line==None.\nIts output can be the 'line' argument of parse()'s input.'''
