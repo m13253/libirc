@@ -29,7 +29,7 @@ def stripcomma(s):
 
 
 def tolist(s, f=None):
-    if f == None:
+    if f is None:
         try:
             if isinstance(s, (str, tostr)):
                 return [s]
@@ -130,7 +130,7 @@ class IRCConnection:
                 e.errno = errno.ENOTSOCK
                 raise e
             try:
-                if sendbuf == None:
+                if sendbuf is None:
                     if self.sendbuf:
                         self.sock.sendall(self.sendbuf)
                     self.sendbuf = b''
@@ -157,16 +157,16 @@ class IRCConnection:
 
     def setuser(self, ident=None, realname=None, sendnow=True):
         '''Set user ident and real name.'''
-        if ident == None:
+        if ident is None:
             ident = self.nick
-        if realname == None:
+        if realname is None:
             realname = ident
         self.quote('USER %s %s %s :%s' % (rmnlsp(ident), rmnlsp(
             ident), rmnlsp(self.addr[0]), rmnl(realname)), sendnow=sendnow)
 
     def join(self, channel, key=None, sendnow=True):
         '''Join channel. A password is optional.'''
-        if key != None:
+        if key is not None:
             key = ' ' + key
         else:
             key = ''
@@ -175,7 +175,7 @@ class IRCConnection:
 
     def part(self, channel, reason=None, sendnow=True):
         '''Leave channel. A reason is optional.'''
-        if reason != None:
+        if reason is not None:
             reason = ' :' + reason
         else:
             reason = ''
@@ -184,7 +184,7 @@ class IRCConnection:
 
     def quit(self, reason=None, wait=True):
         '''Quit and disconnect from server. A reason is optional. If wait is True, the send buffer will be flushed.'''
-        if reason != None:
+        if reason is not None:
             reason = ' :' + reason
         else:
             reason = ''
@@ -227,7 +227,7 @@ class IRCConnection:
 
     def mode(self, target, newmode=None, sendnow=True):
         '''Read or set mode of a nick or a channel.'''
-        if newmode != None:
+        if newmode is not None:
             if target.startswith('#') or target.startswith('&'):
                 newmode = ' ' + newmode
             else:
@@ -239,7 +239,7 @@ class IRCConnection:
 
     def kick(self, channel, target, reason=None, sendnow=True):
         '''Kick a person out of the channel.'''
-        if reason != None:
+        if reason is not None:
             reason = ' :' + reason
         else:
             reason = ''
@@ -248,7 +248,7 @@ class IRCConnection:
 
     def away(self, state=None, sendnow=True):
         '''Set away status with an argument, or cancal away status without the argument'''
-        if state != None:
+        if state is not None:
             state = ' :' + state
         else:
             state = ''
@@ -261,7 +261,7 @@ class IRCConnection:
 
     def notice(self, dest, msg=None, sendnow=True):
         '''Send a notice to a specific user.'''
-        if msg != None:
+        if msg is not None:
             tmpbuf = ''
             for i in msg.splitlines():
                 if i:
@@ -274,7 +274,7 @@ class IRCConnection:
 
     def topic(self, channel, newtopic=None, sendnow=True):
         '''Set a new topic or get the current topic.'''
-        if newtopic != None:
+        if newtopic is not None:
             newtopic = ' :' + newtopic
         else:
             newtopic = ''
@@ -363,7 +363,7 @@ class IRCConnection:
 
     def parse(self, block=True, line=None):
         '''Receive messages from server and process it.\nReturning a dictionary or None.\nIts 'line' argument accepts the output of recvline().'''
-        if line == None:
+        if line is None:
             line = self.recvline(block)
         if line:
             try:
