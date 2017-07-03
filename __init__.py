@@ -7,6 +7,6 @@ try:
 except ImportError:
     from libirc import *
 
-__all__=['libirc']
+__all__ = ['libirc']
 
 # vim: et ft=python sts=4 sw=4 ts=4
