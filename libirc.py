@@ -85,28 +85,47 @@ class IRCConnection:
     def connect(self, addr=('irc.freenode.net', 6667), use_ssl=False):
         '''Connect to a IRC server. addr is a tuple of (server, port)'''
         self.acquire_lock()
-        try:
-            self.addr = (rmnlsp(addr[0]), addr[1])
-            if use_ssl:
-                if (3,) <= sys.version_info < (3, 3):
-                    self.sock = ssl.SSLSocket()
-                elif sys.version_info >= (3, 4):
-                    ctx = ssl.create_default_context()
-                    if ssl.HAS_SNI:
-                        self.sock = ctx.wrap_socket(socket.socket(), server_hostname=addr[0])
+        self.addr = (rmnlsp(addr[0]), addr[1])
+
+        for res in socket.getaddrinfo(self.addr[0], self.addr[1], socket.AF_UNSPEC, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                if use_ssl:
+                    if (3,) <= sys.version_info < (3, 3):
+                        self.sock = ssl.SSLSocket(af, socktype, proto)
+                    elif sys.version_info >= (3, 4):
+                        ctx = ssl.create_default_context()
+                        if ssl.HAS_SNI:
+                            self.sock = ctx.wrap_socket(socket.socket(af, socktype, proto), server_hostname=self.addr[0])
+                        else:
+                            self.sock = ctx.wrap_socket(socket.socket(af, socktype, proto))
                     else:
-                        self.sock = ctx.wrap_socket(socket.socket())
+                        self.sock = ssl.SSLSocket(sock=socket.socket(af, socktype, proto))
                 else:
-                    self.sock = ssl.SSLSocket(sock=socket.socket())
-            else:
-                self.sock = socket.socket()
-            self.sock.settimeout(300)
-            self.sock.connect(self.addr)
-            self.nick = None
-            self.recvbuf = b''
-            self.sendbuf = b''
-        finally:
+                    self.sock = socket.socket(af, socktype, proto)
+            except socket.error:
+                self.sock = None
+                continue
+            try:
+                self.sock.settimeout(300)
+                self.sock.connect(sa)
+            except socket.error:
+                self.sock.close()
+                self.sock = None
+                continue
+            break
+
+        if self.sock is None:
+            e = socket.error(
+                '[errno %d] Socket operation on non-socket' % errno.ENOTSOCK)
+            e.errno = errno.ENOTSOCK
             self.lock.release()
+            raise e
+
+        self.nick = None
+        self.recvbuf = b''
+        self.sendbuf = b''
+        self.lock.release()
 
     def quote(self, s, sendnow=True):
         '''Send a raw IRC command. Split multiple commands using \\n.'''
